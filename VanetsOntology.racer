@@ -1,0 +1,619 @@
+(in-knowledge-base Vanetwork ourVanetwork)
+
+
+; ------------------------------| roles & implicit concepts |---------------------------------------
+
+;GENERAL
+(define-primitive-attribute has-location :range pointInSpace)
+(define-primitive-attribute has-street :range streetWay)
+
+
+;POINTINSPACE
+(define-concrete-domain-attribute latitude :type real :domain pointInSpace)
+(define-concrete-domain-attribute longitude :type real :domain pointInSpace)
+
+;STREETWAY
+(define-concrete-domain-attribute initialCost :type real :domain streetWay)
+(define-concrete-domain-attribute cost :type real :domain streetWay)
+(define-primitive-attribute has-startPoint :domain streetWay :range pointInSpace)
+(define-primitive-attribute has-endPoint :domain streetWay :range pointInSpace)
+(define-concrete-domain-attribute name :type string :domain streetWay)
+(define-primitive-attribute has-roadType :domain roadType :range streetWay)
+
+
+;ROADTYPE
+(define-concrete-domain-attribute legalSpeed :type real :domain roadType)
+(define-concrete-domain-attribute nrLanes :type real :domain roadType)
+
+;CAR
+(define-concrete-domain-attribute plateNumber :type string :domain car)
+(define-primitive-role has-driver :domain car :range driver)
+
+(define-concrete-domain-attribute speed :type real :domain car)
+(define-primitive-attribute has-carlocation :parent has-location :domain car)
+(define-primitive-attribute has-carStreet :parent has-street :domain car)
+(define-concrete-domain-attribute direction :type real :domain car)
+(define-primitive-role has-plan :domain car :range plan)
+
+; carRole, putea fi si subconcept al conceptului car in loc de rol/atribut
+(define-primitive-attribute has-carRole :domain car :range carRole)
+(define-primitive-attribute has-carCategory :domain car :range carCategory)
+(define-primitive-attribute has-model :domain car :range model)
+(define-concrete-domain-attribute color :domain car :type string)
+
+(define-primitive-attribute has-wiFiNode :domain car :range vehicleNode)
+; NU ii simetric. a primeste mesaje de la b => a has-neighbour b
+;             dar b NU primeste mesaje de la a
+(define-primitive-role has-neighbour :domain car :range car)
+
+;CAR MODEL
+(implies dacia model)
+(implies ford model)
+(implies bmw model)
+(implies mercedes model)
+(implies toyota model)
+(implies vw model)
+(implies kia model)
+(disjoint dacia ford bmw mercedes toyota vw kia)
+
+;CAR ROLE
+(implies public carRole)
+(implies privat carRole)
+(disjoint public privat)
+
+(implies urgenta public)
+(implies facility public)
+(disjoint urgenta facility)
+
+(implies transport privat)
+
+(implies garda urgenta)
+(implies ajutor urgenta)
+(disjoint garda ajutor)
+
+;CAR CATEGORY
+(implies catA carCategory)
+(implies catB carCategory)
+(implies catC carCategory)
+(implies catD carCategory)
+(disjoint catA catB catC catD)
+
+;PLAN
+(define-primitive-attribute has-destination :domain plan :range pointInSpace)
+(define-concrete-domain-attribute priority :type real :domain plan)
+(define-primitive-role has-route :domain plan :range route)
+
+;ROUTE
+(define-concrete-domain-attribute totalCost :type real :domain route)
+(define-primitive-role has-edge :domain route :range streetWay)
+
+;WIFINODE
+(define-concrete-domain-attribute radius :type real :domain wiFiNode)
+(define-concrete-domain-attribute bandwidth :type real :domain wiFiNode)
+(implies vehicleNode wiFiNode)
+(implies infrastructureNode wiFiNode)
+(disjoint infrastructureNode vehicleNode)
+
+; ROLES - positions, nu numa pentru masini
+(define-primitive-role inFrontOf :inverse behind)
+(define-primitive-role leftOf :inverse rightOf)
+(define-primitive-role approaching :symmetric)
+(define-primitive-role departing  :symmetric)
+(define-primitive-role atConstantDistance :symmetric)
+
+
+;DRIVER
+(define-concrete-domain-attribute age :type real :domain driver)
+(define-concrete-domain-attribute ratingValue :type real :domain driver)
+
+; types of drivers based on rating
+(equivalent dezastru 	(and (>= ratingValue 0)  (< ratingValue 10) ))
+(equivalent periculos 	(and (>= ratingValue 10) (< ratingValue 20) ))
+(equivalent agresiv 	(and (>= ratingValue 20) (< ratingValue 40) ))
+(equivalent neutru 		(and (>= ratingValue 40) (< ratingValue 60) ))
+(equivalent relaxat 	(and (>= ratingValue 60) (< ratingValue 80) ))
+(equivalent politicos 	(and (>= ratingValue 80) (<= ratingValue 100) ))
+
+
+;MESSAGE
+(define-primitive-attribute has-sender :domain message :range wiFiNode)
+; poate avea mai multi destinatari, niciun destinatar inseamna broadcast
+(define-primitive-role has-recipient :domain message :range wiFiNode)
+(define-primitive-role has-content :domain message :range content)
+
+
+;CONTENT
+(implies roadInformation content)
+(implies auxiliaryInformation content)
+(disjoint roadInformation auxiliaryInformation)
+
+;ROADINFORMATION
+(implies car roadInformation)
+(implies streetWay roadInformation)
+(implies route roadInformation)
+(implies plan roadInformation)
+(implies driver roadInformation)
+(implies interestPoint roadInformation)
+(implies event roadInformation)
+(disjoint car event streetWay route plan driver interestPoint)
+
+
+;AUXILIARY INFORMATION
+(implies wiFiNode auxiliaryInformation)
+(implies moment auxiliaryInformation)
+(disjoint wiFiNode moment)
+
+
+;INTERESTPOINT
+(define-primitive-attribute has-interestPointLocation :parent has-location :domain interestPoint)
+(define-primitive-attribute has-interestPointStreet :parent has-street :domain interestPoint)
+(implies gasStation interestPoint)
+(implies electricityCharger interestPoint)
+(implies restaurant interestPoint)
+(implies accomodation interestPoint)
+(implies radar interestPoint)
+(disjoint gasStation electricityCharger restaurant accomodation radar)
+
+;MOMENT
+(define-concrete-domain-attribute year :type real :domain moment)
+(define-concrete-domain-attribute month :type real :domain moment)
+(define-concrete-domain-attribute day :type real :domain moment)
+(define-concrete-domain-attribute hour :type real :domain moment)
+(define-concrete-domain-attribute minute :type real :domain moment)
+(define-concrete-domain-attribute second :type real :domain moment)
+
+;EVENTS
+(implies incident event)
+(implies lawBreaking event)
+(implies danger event)
+
+(define-primitive-attribute has-eventLocation :parent has-location :domain event)
+(define-primitive-attribute has-eventStreet :parent has-street :domain event)
+(define-primitive-role has-eventEffect :domain event :range eventEffect)
+(define-primitive-attribute has-eventMoment :domain event :range moment)
+
+; incidents + accident danger - collision danger - when overtaking, when switching lanes, speeding,
+; ambulance coming, low fuel alert
+
+;LAWBREAKING
+(define-primitive-attribute has-car :domain lawBreaking :range car)
+(implies speeding lawBreaking)
+(implies drivingDrunk lawBreaking)
+(implies crossDoubleLine lawBreaking)
+
+
+
+;INCIDENT
+(define-concrete-domain-attribute estimatedHoursUntilClear :type real :domain incident)
+
+(implies accident incident)
+(implies trafficJam incident)
+(implies festival incident)
+(implies protest incident)
+(implies roadUnderConstruction incident)
+(disjoint accident trafficJam festival protest roadUnderConstruction)
+
+
+;EVENT EFFECTS
+(implies incidentEffect eventEffect)
+(implies lawBreakingEffect eventEffect)
+(implies dangerEffect eventEffect)
+
+
+; ------------------------------------| instances |------------------------------------
+
+;-------------------------------------------------|Event Effects
+(instance RoadClosed incidentEffect)
+(instance OneLaneAvailable incidentEffect)
+(instance Detour incidentEffect)
+(instance LowSpeedRequired incidentEffect)
+
+(instance DriversLicenseSuspension lawBreakingEffect)
+(instance Warning lawBreakingEffect)
+(instance Ticket lawBreakingEffect)
+(instance CriminalRecord lawBreakingEffect)
+
+(instance PossibleAccident dangerEffect)
+(instance PossibleInjury dangerEffect)
+(instance PossibleStop dangerEffect)
+
+
+;-------------------------------------------------|Car Models
+(instance DaciaLogan dacia)
+(instance FordFocus2008 ford)
+(instance BMWX5 bmw)
+(instance MercedesS430 mercedes)
+(instance ToyotaRAV toyota)
+(instance VWGolf5 vw)
+(instance Kia3000 kia)
+
+;-------------------------------------------------|Car Roles
+(instance Politie garda)
+(instance Jandarmi garda)
+(instance Pompieri ajutor)
+(instance Salvare ajutor)
+(instance CEC facility)
+(instance BNR facility)
+(instance Gunoieri facility)
+(instance TransportMarfa transport)
+(instance TransportPersoane transport)
+(instance Personal privat)
+
+;-------------------------------------------------|Car Categories
+(instance Motocicleta catA)
+(instance Bicicleta catA)
+(instance MasinaMica catB)
+(instance Tir catC)
+(instance Duba catD)
+(instance Bus catD)
+
+;-------------------------------------------------|RoadTypes
+(instance European roadType)
+(instance Local roadType)
+(instance Highway roadType)
+
+(attribute-filler European 90.0 legalSpeed)
+(attribute-filler Local 70.0 legalSpeed)
+(attribute-filler Highway 130.0 legalSpeed)
+
+(attribute-filler European 2.0 nrLanes)
+(attribute-filler Local 1.0 nrLanes)
+(attribute-filler Highway 3.0 nrLanes)
+
+; -------------------------------------------------| Drivers
+
+(instance Schumacher driver)
+(instance Alonso driver)
+(instance TudorTurcu driver)
+(instance BurianAndrei driver)
+(instance OldGranny driver)
+(instance Alex driver)
+(instance Alin driver)
+(instance Mihai driver)
+(instance Ionut driver)
+(instance Paul driver)
+(instance Vlad driver)
+(instance Ioana driver)
+
+(attribute-filler Schumacher 45.0 age)
+(attribute-filler Schumacher 87.0 ratingValue)
+(attribute-filler Alonso 32.0 age)
+(attribute-filler Alonso 59.0 ratingValue)
+(attribute-filler TudorTurcu 22.0 age)
+(attribute-filler TudorTurcu 7.0 ratingValue)
+(attribute-filler BurianAndrei 23.0 age)
+(attribute-filler BurianAndrei 64.0 ratingValue)
+(attribute-filler OldGranny 95.0 age)
+(attribute-filler OldGranny 3.0 ratingValue)
+(attribute-filler Alex 55.0 age)
+(attribute-filler Alex 39.0 ratingValue)
+(attribute-filler Alin 42.0 age)
+(attribute-filler Alin 73.0 ratingValue)
+(attribute-filler Mihai 21.0 age)
+(attribute-filler Mihai 17.0 ratingValue)
+(attribute-filler Ionut 25.0 age)
+(attribute-filler Ionut 59.0 ratingValue)
+(attribute-filler Paul 33.0 age)
+(attribute-filler Paul 83.0 ratingValue)
+(attribute-filler Vlad 45.0 age)
+(attribute-filler Vlad 91.0 ratingValue)
+(attribute-filler Ioana 24.0 age)
+(attribute-filler Ioana 17.0 ratingValue)
+
+
+;-------------------------------------------------| PointInSpace
+(instance Cluj pointInSpace)
+(instance Brasov pointInSpace)
+(instance Sibiu pointInSpace)
+(instance Timisoara pointInSpace)
+(instance Iasi pointInSpace)
+(instance Bucuresti pointInSpace)
+(instance Craiova pointInSpace)
+
+(instance Car1Location pointInSpace)
+(instance Car2Location pointInSpace)
+(instance Car3Location pointInSpace)
+
+(attribute-filler Cluj 46.77 latitude)
+(attribute-filler Cluj 23.58 longitude)
+
+(attribute-filler Brasov 45.67 latitude)
+(attribute-filler Brasov 25.62 longitude)
+
+(attribute-filler Sibiu 45.79 latitude)
+(attribute-filler Sibiu 24.15 longitude)
+
+(attribute-filler Timisoara 45.76 latitude)
+(attribute-filler Timisoara 21.23 longitude)
+
+(attribute-filler Iasi 47.16 latitude)
+(attribute-filler Iasi 27.59 longitude)
+
+(attribute-filler Bucuresti 44.43 latitude)
+(attribute-filler Bucuresti 26.10 longitude)
+
+(attribute-filler Craiova 44.33 latitude)
+(attribute-filler Craiova 23.82 longitude)
+
+(attribute-filler Car1Location 45.90 latitude)
+(attribute-filler Car1Location 24.82 longitude)
+
+(attribute-filler Car2Location 45.92 latitude)
+(attribute-filler Car2Location 24.83 longitude)
+
+(attribute-filler Car3Location 44.22 latitude)
+(attribute-filler Car3Location 22.83 longitude)
+
+
+;-------------------------------------------------| StreetWay
+(instance Cluj-Brasov streetWay)
+(related Cluj-Brasov Cluj has-startPoint)
+(related Cluj-Brasov Brasov	has-endPoint)
+(attribute-filler Cluj-Brasov 273.0 initialCost)
+(attribute-filler Cluj-Brasov "E60" name)
+(related Cluj-Brasov European has-roadType)
+
+(instance Cluj-Sibiu streetWay)
+(related Cluj-Sibiu Cluj has-startPoint)
+(related Cluj-Sibiu Sibiu has-endPoint)
+(attribute-filler Cluj-Sibiu 175.0 initialCost)
+(attribute-filler Cluj-Sibiu "E81" name)
+(related Cluj-Sibiu European has-roadType)
+
+(instance Cluj-Timisoara streetWay)
+(related Cluj-Timisoara Cluj has-startPoint)
+(related Cluj-Timisoara Timisoara has-endPoint)
+(attribute-filler Cluj-Timisoara 316.0 initialCost)
+(attribute-filler Cluj-Timisoara "A1" name)
+(related Cluj-Timisoara Highway has-roadType)
+
+(instance Cluj-Iasi streetWay)
+(related Cluj-Iasi Cluj has-startPoint)
+(related Cluj-Iasi Iasi has-endPoint)
+(attribute-filler Cluj-Iasi 394.0 initialCost)
+(attribute-filler Cluj-Iasi "DN16" name)
+(related Cluj-Iasi Local has-roadType)
+
+
+(instance Sibiu-Cluj streetWay)
+(related Sibiu-Cluj Sibiu has-startPoint)
+(related Sibiu-Cluj Cluj has-endPoint)
+(attribute-filler Sibiu-Cluj 169.0 initialCost)
+(attribute-filler Sibiu-Cluj "E81" name)
+(related Sibiu-Cluj European has-roadType)
+
+(instance Sibiu-Brasov streetWay)
+(related Sibiu-Brasov Sibiu has-startPoint)
+(related Sibiu-Brasov Brasov has-endPoint)
+(attribute-filler Sibiu-Brasov 143.0 initialCost)
+(attribute-filler Sibiu-Brasov "E68" name)
+(related Sibiu-Brasov European has-roadType)
+
+(instance Sibiu-Craiova streetWay)
+(related Sibiu-Craiova Sibiu has-startPoint)
+(related Sibiu-Craiova Craiova has-endPoint)
+(attribute-filler Sibiu-Craiova 222.0 initialCost)
+(attribute-filler Sibiu-Craiova "E81" name)
+(related Sibiu-Craiova European has-roadType)
+
+
+(instance Brasov-Sibiu streetWay)
+(related Brasov-Sibiu Brasov has-startPoint)
+(related Brasov-Sibiu Sibiu has-endPoint)
+(attribute-filler Brasov-Sibiu 142.0 initialCost)
+(attribute-filler Brasov-Sibiu "E68" name)
+(related Brasov-Sibiu European has-roadType)
+
+(instance Brasov-Iasi streetWay)
+(related Brasov-Iasi Brasov has-startPoint)
+(related Brasov-Iasi Iasi has-endPoint)
+(attribute-filler Brasov-Iasi 306.0 initialCost)
+(attribute-filler Brasov-Iasi "E574" name)
+(related Brasov-Iasi European has-roadType)
+
+(instance Brasov-Bucuresti streetWay)
+(related Brasov-Bucuresti Brasov has-startPoint)
+(related Brasov-Bucuresti Bucuresti has-endPoint)
+(attribute-filler Brasov-Bucuresti 186.0 initialCost)
+(attribute-filler Brasov-Bucuresti "A3" name)
+(related Brasov-Bucuresti Highway has-roadType)
+
+
+(instance Timisoara-Cluj streetWay)
+(related Timisoara-Cluj Timisoara has-startPoint)
+(related Timisoara-Cluj Cluj has-endPoint)
+(attribute-filler Timisoara-Cluj 329.0 initialCost)
+(attribute-filler Timisoara-Cluj "A1" name)
+(related Timisoara-Cluj Highway has-roadType)
+
+
+(instance Craiova-Sibiu streetWay)
+(related Craiova-Sibiu Craiova has-startPoint)
+(related Craiova-Sibiu Sibiu has-endPoint)
+(attribute-filler Craiova-Sibiu 215.0 initialCost)
+(attribute-filler Craiova-Sibiu "E81" name)
+(related Craiova-Sibiu European has-roadType)
+
+(instance Craiova-Bucuresti streetWay)
+(related Craiova-Bucuresti Craiova has-startPoint)
+(related Craiova-Bucuresti Bucuresti has-endPoint)
+(attribute-filler Craiova-Bucuresti 230.0 initialCost)
+(attribute-filler Craiova-Bucuresti "E81" name)
+(related Craiova-Bucuresti European has-roadType)
+
+(instance Craiova-Timisoara streetWay)
+(related Craiova-Timisoara Craiova has-startPoint)
+(related Craiova-Timisoara Timisoara has-endPoint)
+(attribute-filler Craiova-Timisoara 336.0 initialCost)
+(attribute-filler Craiova-Timisoara "E70" name)
+(related Craiova-Timisoara European has-roadType)
+
+
+(instance Bucuresti-Brasov streetWay)
+(related Bucuresti-Brasov Bucuresti has-startPoint)
+(related Bucuresti-Brasov Brasov has-endPoint)
+(attribute-filler Bucuresti-Brasov 171.0 initialCost)
+(attribute-filler Bucuresti-Brasov "E60" name)
+(related Bucuresti-Brasov European has-roadType)
+
+(instance Bucuresti-Iasi streetWay)
+(related Bucuresti-Iasi Bucuresti has-startPoint)
+(related Bucuresti-Iasi Iasi has-endPoint)
+(attribute-filler Bucuresti-Iasi 383.0 initialCost)
+(attribute-filler Bucuresti-Iasi "E85" name)
+(related Bucuresti-Iasi European has-roadType)
+
+
+(instance Iasi-Bucuresti streetWay)
+(related Iasi-Bucuresti Iasi has-startPoint)
+(related Iasi-Bucuresti Bucuresti has-endPoint)
+(attribute-filler Iasi-Bucuresti 387.0 initialCost)
+(attribute-filler Iasi-Bucuresti "E581" name)
+(related Iasi-Bucuresti European has-roadType)
+
+; -------------------------------------------------| Routes
+(instance Route1 route)
+(attribute-filler Route1 415.0 totalCost)
+(related Route1 Cluj-Brasov has-edge)
+(related Route1 Brasov-Sibiu has-edge)
+
+(instance Route2 route)
+(attribute-filler Route2 175.0 totalCost)
+(related Route2 Cluj-Sibiu has-edge)
+
+(instance Route3 route)
+(attribute-filler Route3 350.0 totalCost)
+(related Route3 Cluj-Iasi has-edge)
+
+(instance Route4 route)
+(attribute-filler Route4 470.0 totalCost)
+(related Route4 Cluj-Brasov has-edge)
+(related Route4 Brasov-Iasi has-edge)
+
+(instance Route5 route)
+(attribute-filler Route5 115.0 totalCost)
+(related Route5 Brasov-Bucuresti has-edge)
+
+(instance Route6 route)
+(attribute-filler Route6 565.0 totalCost)
+(related Route5 Brasov-Iasi has-edge)
+(related Route5 Iasi-Bucuresti has-edge)
+
+(instance Route7 route)
+(attribute-filler Route7 336.0 totalCost)
+(related Route7 Craiova-Timisoara has-edge)
+
+(instance Route8 route)
+(attribute-filler Route8 670.0 totalCost)
+(related Route8 Craiova-Bucuresti has-edge)
+(related Route8 Bucuresti-Brasov has-edge)
+
+(instance Route9 route)
+(attribute-filler Route9 1263.0 totalCost)
+(related Route9 Craiova-Timisoara has-edge)
+(related Route9 Timisoara-Cluj has-edge)
+(related Route9 Cluj-Sibiu has-edge)
+(related Route9 Sibiu-Brasov has-edge)
+(related Route9 Brasov-Iasi has-edge)
+
+; -------------------------------------------------| Plans
+(instance Plan1 plan)
+(related Plan1 Sibiu has-destination)
+(attribute-filler Plan1 1.0 priority)
+(related Plan1 Route1 has-route)
+(related Plan1 Route2 has-route)
+
+(instance Plan2 plan)
+(related Plan2 Iasi has-destination)
+(attribute-filler Plan2 2.0 priority)
+(related Plan2 Route3 has-route)
+(related Plan2 Route4 has-route)
+
+(instance Plan3 plan)
+(related Plan3 Bucuresti has-destination)
+(attribute-filler Plan3 1.0 priority)
+(related Plan3 Route5 has-route)
+(related Plan3 Route6 has-route)
+
+(instance Plan4 plan)
+(related Plan4 Timisoara has-destination)
+(attribute-filler Plan4 1.0 priority)
+(related Plan4 Route7 has-route)
+
+(instance Plan5 plan)
+(related Plan5 Brasov has-destination)
+(attribute-filler Plan5 1.0 priority)
+(related Plan5 Route8 has-route)
+
+(instance Plan6 plan)
+(related Plan6 Iasi has-destination)
+(attribute-filler Plan6 1.0 priority)
+(related Plan6 Route9 has-route)
+
+(instance Plan7 plan)
+(related Plan7 Sibiu has-destination)
+(attribute-filler Plan7 1.0 priority)
+(related Plan7 Route1 has-route)
+
+
+;-------------------------------------------------| Nodes (NOT COMPLETE)
+(instance Car1Node vehicleNode)
+(instance Car2Node vehicleNode)
+(instance Car3Node vehicleNode)
+
+; attributes
+
+; infrastructure nodes
+
+; -------------------------------------------------|Cars (NOT COMPLETE)
+(instance Car1 car)
+(attribute-filler Car1 30.0 speed)
+(related Car1 Car1location has-carLocation)
+(related Car1 Cluj-Brasov has-carStreet)
+(related Car1 Plan1 has-plan)
+(related Car1 Plan3 has-plan)
+(attribute-filler Car1 "CJ-11-TCT" plateNumber)
+(related Car1 VWGolf5 has-model)
+(related Car1 Personal has-carRole)
+(related Car1 MasinaMica has-carCategory)
+(related Car1 TudorTurcu has-driver)
+(related Car1 Car1Node has-wiFiNode)
+(related Car2 Car1 has-neighbour)
+
+; color
+
+(instance Car2 car)
+(attribute-filler Car2 50.0 speed)
+(related Car2 Car2location has-carLocation)
+(related Car2 Cluj-Brasov has-carStreet)
+(related Car2 Plan2 has-plan)
+(attribute-filler Car2 "CJ-91-BRY" plateNumber)
+(related Car2 ToyotaRAV has-model)
+(related Car2 Personal has-carRole)
+(related Car2 MasinaMica has-carCategory)
+(related Car2 BurianAndrei has-driver)
+(related Car2 Car2Node has-wiFiNode)
+(related Car1 Car2 has-neighbour)
+
+
+(instance Car3 car)
+(attribute-filler Car3 50.0 speed)
+(related Car3 Car3location has-carLocation)
+(related Car3 Craiova-Timisoara has-carStreet)
+(related Car3 Plan4 has-plan)
+(attribute-filler Car3 "CJ-70-SCH" plateNumber)
+(related Car3 MercedesS430 has-model)
+(related Car3 Jandarmi has-carRole)
+(related Car3 Duba has-carCategory)
+(related Car3 Schumaher has-driver)
+(related Car3 Car3Node has-wiFiNode)
+
+; -------------------------------------------------| Interest Points
+
+; -------------------------------------------------| Moments
+
+; -------------------------------------------------| Messages
+
+; -------------------------------------------------| Roles - Positions
+
+; -------------------------------------------------| Events
